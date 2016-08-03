@@ -359,7 +359,7 @@ message LayerParameter {
   // engine parameter for selecting the implementation.
   // The default for the engine is set by the ENGINE switch at compile-time.
   optional AccuracyParameter accuracy_param = 102;
-  optional AugumentedParameter augumented_param = 147;
+  optional AugumentedDataParameter augumented_param = 147;
   optional ArgMaxParameter argmax_param = 103;
   optional BatchNormParameter batch_norm_param = 139;
   optional BiasParameter bias_param = 141;
@@ -475,6 +475,22 @@ message AccuracyParameter {
   // If specified, ignore instances with the given label.
   optional int32 ignore_label = 3;
 }
+
+// Message that stores parameters used by HDF5DataLayer
+message AugumentedDataParameter {
+  // Specify the data source.
+  optional string source = 1;
+  // Specify the batch size.
+  optional uint32 batch_size = 2;
+  
+  // Specifiy the number of rotations per image, this parameter is also
+  // responsive for the inflation of data and his augumentation
+	optional uint32 num_rotations_img = 3;
+	optional uint32 min_rotation_angle = 4;
+	optional uint32 max_rotation_angle = 5;
+
+}
+
 
 message ArgMaxParameter {
   // If true produce pairs (argmax, maxval)

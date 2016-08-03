@@ -5,12 +5,12 @@
 namespace caffe {
 
 template <typename Dtype>
-HDF5DataLayer<Dtype>::~HDF5DataLayer<Dtype>() { }
+AUGUMENTEDDataLayer<Dtype>::~AUGUMENTEDDataLayer<Dtype>() { }
 
 // Load data and label from HDF5 filename into the class property blobs.
 template <typename Dtype>
 void AUGUMENTEDDataLayer<Dtype>::LoadHDF5FileData(const char* filename) {
-  DLOG(INFO) << "Loading HDF5 file: " << filename;
+  /*DLOG(INFO) << "Loading HDF5 file: " << filename;
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
     LOG(FATAL) << "Failed opening HDF5 file: " << filename;
@@ -50,15 +50,18 @@ void AUGUMENTEDDataLayer<Dtype>::LoadHDF5FileData(const char* filename) {
                << " rows (shuffled)";
   } else {
     DLOG(INFO) << "Successully loaded " << hdf_blobs_[0]->shape(0) << " rows";
-  }
+  }*/
 }
 
 template <typename Dtype>
 void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-	// Refuse if augumented transform parameters are not present
-	CHECK(this->layer_param_.has_transform_param()) <<
-		this->type() << " does need transform data.";
+	AugumentedDataParameter const& aug_param = this->layer_param_.augumented_param();
+	string const& source = aug_param.source();
+	uint32 const batch_size = aug_param.batch_size();
+	uint32 const num_rotations_img = aug_param.num_rotations_img();
+	unit32 const min_rotation_angle = aug_param.min_rotation_angle();
+	unit32 const max_rotation_angle = aug_param.max_rotation_angle();
 }
 
 template <typename Dtype>
