@@ -3,6 +3,18 @@
 
 #include <vector>
 
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <string>
+#include <iterator>
+#include <algorithm>
+#include <sstream>
+#include <vector>
+#include <math.h>
+
 #include "caffe/blob.hpp"
 #include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
@@ -42,13 +54,13 @@ class AUGUMENTEDDataLayer : public Layer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
   //virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
     //  const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
-  virtual void LoadHDF5FileData(const char* filename);
+  virtual void LoadImageFileData(const char* filename);
 
-  std::vector<std::string> hdf_filenames_;
+  std::vector<std::string> aug_filenames_;
   unsigned int num_files_;
   unsigned int current_file_;
   //hsize_t current_row_;
-  std::vector<shared_ptr<Blob<Dtype> > > hdf_blobs_;
+  std::vector<shared_ptr<Blob<Dtype> > > image_blobs_;
   std::vector<unsigned int> data_permutation_;
   std::vector<unsigned int> file_permutation_;
 };

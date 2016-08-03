@@ -9,48 +9,37 @@ AUGUMENTEDDataLayer<Dtype>::~AUGUMENTEDDataLayer<Dtype>() { }
 
 // Load data and label from HDF5 filename into the class property blobs.
 template <typename Dtype>
-void AUGUMENTEDDataLayer<Dtype>::LoadHDF5FileData(const char* filename) {
-  /*DLOG(INFO) << "Loading HDF5 file: " << filename;
-  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-  if (file_id < 0) {
-    LOG(FATAL) << "Failed opening HDF5 file: " << filename;
-  }
+void AUGUMENTEDDataLayer<Dtype>::LoadImageFileData(const char* filename) {
+	DLOG(INFO) << "Loading image file: " << filename;
+	// Loading the image
+	cv::Mat image_file = cv::imread(filename);
+	if (!image_file.data) {
+		LOG(FATAL) << "Failed opening image file: " << filename;
+	}
 
-  int top_size = this->layer_param_.top_size();
-  hdf_blobs_.resize(top_size);
+	int top_size = this->layer_param_.top_size();
+	image_blobs_.resize(top_size);
 
-  const int MIN_DATA_DIM = 1;
-  const int MAX_DATA_DIM = INT_MAX;
+	for(int i = 0; i < top_size; ++i){
+		image_blobs_[i] = shared_ptr<Blob<Dtype> >(new Blob<Dtype>());
+		// 1 have to the batch size
+		image_blobs_[i].get()->Reshape(1, image_file.channels(), image_file.rows, image_file.cols);
+	}
+	
+	CHECK_GE(image_blobs_[0]->num_axes(), 1) << "Input must have at least 1 axis.";
+	const int num = image_blobs_[0]->shape(0);
+	for(int i = 1; i < top_size; ++i){
+			CHECK_EQ(image_blobs_[i]->shape(0), num);
+	}
+	
+	// Default to identity permutation.
+	data_permutation_.clear();
+	data_permutation_.resize(image_blobs_[0]->shape(0));
+	for (int i = 0; i < image_blobs_[0]->shape(0); i++)
+		data_permutation_[i] = i;
 
-  for (int i = 0; i < top_size; ++i) {
-    hdf_blobs_[i] = shared_ptr<Blob<Dtype> >(new Blob<Dtype>());
-    hdf5_load_nd_dataset(file_id, this->layer_param_.top(i).c_str(),
-        MIN_DATA_DIM, MAX_DATA_DIM, hdf_blobs_[i].get());
-  }
+	DLOG(INFO) << "Successully loaded " << image_blobs_[0]->shape(0) << " rows";
 
-  herr_t status = H5Fclose(file_id);
-  CHECK_GE(status, 0) << "Failed to close HDF5 file: " << filename;
-
-  // MinTopBlobs==1 guarantees at least one top blob
-  CHECK_GE(hdf_blobs_[0]->num_axes(), 1) << "Input must have at least 1 axis.";
-  const int num = hdf_blobs_[0]->shape(0);
-  for (int i = 1; i < top_size; ++i) {
-    CHECK_EQ(hdf_blobs_[i]->shape(0), num);
-  }
-  // Default to identity permutation.
-  data_permutation_.clear();
-  data_permutation_.resize(hdf_blobs_[0]->shape(0));
-  for (int i = 0; i < hdf_blobs_[0]->shape(0); i++)
-    data_permutation_[i] = i;
-
-  // Shuffle if needed.
-  if (this->layer_param_.hdf5_data_param().shuffle()) {
-    std::random_shuffle(data_permutation_.begin(), data_permutation_.end());
-    DLOG(INFO) << "Successully loaded " << hdf_blobs_[0]->shape(0)
-               << " rows (shuffled)";
-  } else {
-    DLOG(INFO) << "Successully loaded " << hdf_blobs_[0]->shape(0) << " rows";
-  }*/
 }
 
 template <typename Dtype>
@@ -58,10 +47,39 @@ void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
 	AugumentedDataParameter const& aug_param = this->layer_param_.augumented_param();
 	string const& source = aug_param.source();
-	uint32 const batch_size = aug_param.batch_size();
-	uint32 const num_rotations_img = aug_param.num_rotations_img();
-	unit32 const min_rotation_angle = aug_param.min_rotation_angle();
-	unit32 const max_rotation_angle = aug_param.max_rotation_angle();
+	LOG(INFO) << "Loading images from file list: " << source;
+	/*this->batch_size = aug_param.batch_size();
+	this->num_rotations_img = aug_param.num_rotations_img();
+	this->min_rotation_angle = aug_param.min_rotation_angle();
+	this->max_rotation_angle = aug_param.max_rotation_angle();*/
+	
+	// Read all filenames from list into a vector
+	aug_filenames_.clear();
+	std::ifstream source_file(source.c_str());
+	if(source_file.is_open()){
+		std::string line;
+		while(source_file >> line){
+			aug_filenames_.push_back(line);
+		}
+	}else{
+		LOG(FATAL) << "Failed to open source file: " << source;
+	}
+	source_file.close();
+	num_files_ = aug_filenames_.size();
+	current_file_ = 0;
+	LOG(INFO) << "Number of image files: " << num_files_;
+	CHECK_GE(num_files_, 1) << "Must have at least 1 image filename listed in "
+    << source;
+	
+	file_permutation_.clear();
+	file_permutation_.resize(num_files_);
+	// Default to identity permutation.
+	for (int i = 0; i < num_files_; i++) {
+		file_permutation_[i] = i;
+	}
+	
+	LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
+
 }
 
 template <typename Dtype>
