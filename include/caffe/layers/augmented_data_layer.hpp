@@ -59,7 +59,7 @@ class AUGUMENTEDDataLayer : public Layer<Dtype> {
   std::vector<std::string> aug_filenames_;
   unsigned int num_files_;
   unsigned int current_file_;
-  //hsize_t current_row_;
+  unsigned int current_row_;
   std::vector<shared_ptr<Blob<Dtype> > > image_blobs_;
   std::vector<unsigned int> data_permutation_;
   std::vector<unsigned int> file_permutation_;

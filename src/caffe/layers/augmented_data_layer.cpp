@@ -48,8 +48,8 @@ void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 	AugumentedDataParameter const& aug_param = this->layer_param_.augumented_param();
 	string const& source = aug_param.source();
 	LOG(INFO) << "Loading images from file list: " << source;
-	/*this->batch_size = aug_param.batch_size();
-	this->num_rotations_img = aug_param.num_rotations_img();
+	const int batch_size = aug_param.batch_size();
+	/*this->num_rotations_img = aug_param.num_rotations_img();
 	this->min_rotation_angle = aug_param.min_rotation_angle();
 	this->max_rotation_angle = aug_param.max_rotation_angle();*/
 	
@@ -79,13 +79,48 @@ void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 	}
 	
 	LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
+	current_row_ = 0;
+	
+	// Reshape blobs
+	const int top_size = this->layer_param_.top_size();
+	vector<int> top_shape;
+	for(int i = 0; i < top_size; ++i){
+			top_shape.resize(image_blobs_[i]->num_axes());
+			top_shape[0] = batch_size;
+			for(int j = 1; j < top_shape.size(); ++j){
+				top_shape[j] = image_blobs_[i]->shape(j);
+			}
+			top[i]->Reshape(top_shape);
+	}
 
 }
 
 template <typename Dtype>
 void AUGUMENTEDDataLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-  
+	const int batch_size = this->layer_param_.augumented_param().batch_size();
+	// TODO current_row ist falsch, oder?
+	for(int i = 0; i < batch_size; ++i, ++current_row_){
+		// If we reached the batch_siez
+		if(current_row_ == image_blobs_[0]->shape(0)){
+			if(num_files_ > 1){
+				++current_file_;
+				if(current_file_ == num_files_){
+						current_file_ = 0;
+						DLOG(INFO) << "Looping around to first image.";
+				}
+				LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
+			}
+			current_row_ = 0;
+		}
+		for(int j = 0; j < this->layer_param_.top_size(); ++j){
+			int data_dim = top[j]->count() / top[j]->shape(0);
+			caffe_copy(data_dim,
+				&image_blobs_[j]->cpu_data()[data_permutation_[current_row_]
+					* data_dim], &top[j]->mutable_cpu_data()[i * data_dim]);
+		}
+	}
+	
 }
 
 #ifdef CPU_ONLY
