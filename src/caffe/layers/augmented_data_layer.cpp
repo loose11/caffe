@@ -77,7 +77,7 @@ void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 	for (int i = 0; i < num_files_; i++) {
 		file_permutation_[i] = i;
 	}
-	
+	LOG(INFO) << "Loading files...";
 	LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
 	current_row_ = 0;
 	
@@ -115,6 +115,7 @@ void AUGUMENTEDDataLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 		}
 		for(int j = 0; j < this->layer_param_.top_size(); ++j){
 			int data_dim = top[j]->count() / top[j]->shape(0);
+			DLOG(INFO) << "Dimension: " << data_dim;
 			caffe_copy(data_dim,
 				&image_blobs_[j]->cpu_data()[data_permutation_[current_row_]
 					* data_dim], &top[j]->mutable_cpu_data()[i * data_dim]);

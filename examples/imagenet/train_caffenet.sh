@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
 ./build/tools/caffe train \
-    --solver=models/bvlc_reference_caffenet/solver.prototxt
+    --solver=models/uni_augsburg_swim/solver.prototxt -gpu 2
