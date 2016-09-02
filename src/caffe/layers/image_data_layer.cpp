@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+
 #include "caffe/data_transformer.hpp"
 #include "caffe/layers/base_data_layer.hpp"
 #include "caffe/layers/image_data_layer.hpp"
@@ -14,12 +15,23 @@
 #include "caffe/util/io.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "caffe/util/rng.hpp"
+#include "caffe/util/augumented.hpp"
+
+using namespace cv;
+using namespace std;
 
 namespace caffe {
+
 
 template <typename Dtype>
 ImageDataLayer<Dtype>::~ImageDataLayer<Dtype>() {
   this->StopInternalThread();
+}
+
+template <typename Dtype>
+void ImageDataLayer<Dtype>::GenerateBoxes(string line){
+    std::string ref_box_file = get_ref_box(line);
+    bounding_boxes = aug_load_bounding_box(ref_box_file);
 }
 
 template <typename Dtype>
@@ -39,11 +51,15 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   std::ifstream infile(source.c_str());
   string line;
   size_t pos;
-  int label;
   while (std::getline(infile, line)) {
+    // Extract path to image
+    this->GenerateBoxes(line);
+
     pos = line.find_last_of(' ');
-    label = atoi(line.substr(pos + 1).c_str());
-    lines_.push_back(std::make_pair(line.substr(0, pos), label));
+
+    labels = aug_load_labels(get_ref_box(line));
+    // TODO Now only one class per file, must be more
+    lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(0)));
   }
 
   CHECK(!lines_.empty()) << "File is empty";
@@ -69,6 +85,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   // Read an image, and use it to initialize the top blob.
   cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
                                     new_height, new_width, is_color);
+
   CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
   // Use data_transformer to infer the expected blob shape from a cv_image.
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
@@ -117,11 +134,31 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
-  // Reshape according to the first image of each batch
-  // on single input batches allows for inputs of varying dimension.
+  AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
+  const int num_rotations_img = aug_data_param.num_rotations_img();
+  const int min_rotation_angle = aug_data_param.min_rotation_angle();
+  const int max_rotation_angle = aug_data_param.max_rotation_angle();
+
+
   cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
       new_height, new_width, is_color);
+
+  cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+  
+  this->GenerateBoxes(lines_[lines_id_].first);
+  labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
+
+  
   CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+
+  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(0), num_rotations_img, min_rotation_angle, max_rotation_angle);
+
+  for (int i = 0; i < augumented_images.size(); ++i)
+  {
+      std::string path  = "/home/liebmatt/images/" + create_raw_name(lines_[lines_id_].first) + "_" + ".png";
+      cv::imwrite(path, augumented_images.at(i));
+  }
+
   // Use data_transformer to infer the expected blob shape from a cv_img.
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
   this->transformed_data_.Reshape(top_shape);
@@ -140,6 +177,30 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     CHECK_GT(lines_size, lines_id_);
     cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
         new_height, new_width, is_color);
+
+    this->GenerateBoxes(lines_[lines_id_].first);
+    labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
+
+    cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+
+    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(0), num_rotations_img, min_rotation_angle, max_rotation_angle);
+    srand (static_cast <unsigned> (time(0)));
+    for (int i = 0; i < augumented_images.size(); ++i)
+    {
+
+      char buffer[300];
+
+
+      float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+      sprintf(buffer, "/home/liebmatt/images/%s_%f.png", create_raw_name(lines_[lines_id_].first).c_str(), randomNum);
+
+      LOG(INFO) << lines_[lines_id_].first;
+      std::string path  = buffer;
+      LOG(INFO) << buffer;
+      cv::imwrite(path, augumented_images.at(i));
+    }
+
+
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     read_time += timer.MicroSeconds();
     timer.Start();
@@ -149,6 +210,8 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
 
+
+    LOG(INFO) << "LABEL: " << lines_[lines_id_].second;
     prefetch_label[item_id] = lines_[lines_id_].second;
     // go to the next iter
     lines_id_++;

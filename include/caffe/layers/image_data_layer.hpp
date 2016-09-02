@@ -11,6 +11,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/layers/base_data_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
+#include "caffe/util/augumented.hpp"
 
 namespace caffe {
 
@@ -25,6 +26,7 @@ class ImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
   explicit ImageDataLayer(const LayerParameter& param)
       : BasePrefetchingDataLayer<Dtype>(param) {}
   virtual ~ImageDataLayer();
+  virtual void GenerateBoxes(std::string line);
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
@@ -39,6 +41,9 @@ class ImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
   vector<std::pair<std::string, int> > lines_;
   int lines_id_;
+
+  std::vector< std::vector<int> > bounding_boxes;
+  std::vector<int> labels;
 };
 
 
