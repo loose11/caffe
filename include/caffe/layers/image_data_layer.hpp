@@ -13,6 +13,7 @@
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/augumented.hpp"
 
+
 namespace caffe {
 
 /**

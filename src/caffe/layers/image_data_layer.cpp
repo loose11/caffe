@@ -39,8 +39,11 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const int new_height = this->layer_param_.image_data_param().new_height();
   const int new_width  = this->layer_param_.image_data_param().new_width();
-  const bool is_color  = this->layer_param_.image_data_param().is_color();
   string root_folder = this->layer_param_.image_data_param().root_folder();
+  AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
+  const int num_rotations_img = aug_data_param.num_rotations_img();
+  const int min_rotation_angle = aug_data_param.min_rotation_angle();
+  const int max_rotation_angle = aug_data_param.max_rotation_angle();
 
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
@@ -53,10 +56,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   size_t pos;
   while (std::getline(infile, line)) {
     // Extract path to image
-    this->GenerateBoxes(line);
-
     pos = line.find_last_of(' ');
-
     labels = aug_load_labels(get_ref_box(line));
     // TODO Now only one class per file, must be more
     lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(0)));
@@ -64,36 +64,26 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 
   CHECK(!lines_.empty()) << "File is empty";
 
-  if (this->layer_param_.image_data_param().shuffle()) {
-    // randomly shuffle data
-    LOG(INFO) << "Shuffling data";
-    const unsigned int prefetch_rng_seed = caffe_rng_rand();
-    prefetch_rng_.reset(new Caffe::RNG(prefetch_rng_seed));
-    ShuffleImages();
-  }
   LOG(INFO) << "A total of " << lines_.size() << " images.";
 
   lines_id_ = 0;
-  // Check if we would need to randomly skip a few data points
-  if (this->layer_param_.image_data_param().rand_skip()) {
-    unsigned int skip = caffe_rng_rand() %
-        this->layer_param_.image_data_param().rand_skip();
-    LOG(INFO) << "Skipping first " << skip << " data points.";
-    CHECK_GT(lines_.size(), skip) << "Not enough points to skip";
-    lines_id_ = skip;
-  }
-  // Read an image, and use it to initialize the top blob.
-  cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
-                                    new_height, new_width, is_color);
 
-  CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
-  // Use data_transformer to infer the expected blob shape from a cv_image.
-  vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
+  // Read an image, and use it to initialize the top blob.
+  this->GenerateBoxes(lines_[lines_id_].first);
+  labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
+  cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(0), num_rotations_img, min_rotation_angle, max_rotation_angle);
+
+  cv::Mat resized_image = resize_image(augumented_images.at(0), new_width, new_height);
+
+  CHECK(resized_image.data) << "Could not load " << lines_[lines_id_].first;
+  // Use data_transformer to infer the expected blob shape from a augumented_images.
+  vector<int> top_shape = this->data_transformer_->InferBlobShape(resized_image);
   this->transformed_data_.Reshape(top_shape);
   // Reshape prefetch_data and top[0] according to the batch_size.
-  const int batch_size = this->layer_param_.image_data_param().batch_size();
+  const int batch_size = this->layer_param_.image_data_param().batch_size() * num_rotations_img * 4;
   CHECK_GT(batch_size, 0) << "Positive batch size required";
-  top_shape[0] = batch_size;
+  top_shape[0] = batch_size ;
   for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
     this->prefetch_[i].data_.Reshape(top_shape);
   }
@@ -120,18 +110,13 @@ void ImageDataLayer<Dtype>::ShuffleImages() {
 // This function is called on prefetch thread
 template <typename Dtype>
 void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
-  CPUTimer batch_timer;
-  batch_timer.Start();
-  double read_time = 0;
-  double trans_time = 0;
-  CPUTimer timer;
   CHECK(batch->data_.count());
   CHECK(this->transformed_data_.count());
   ImageDataParameter image_data_param = this->layer_param_.image_data_param();
-  const int batch_size = image_data_param.batch_size();
+  int batch_size = image_data_param.batch_size();
   const int new_height = image_data_param.new_height();
   const int new_width = image_data_param.new_width();
-  const bool is_color = image_data_param.is_color();
+  //const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
   AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
@@ -139,28 +124,20 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int min_rotation_angle = aug_data_param.min_rotation_angle();
   const int max_rotation_angle = aug_data_param.max_rotation_angle();
 
-
-  cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
-      new_height, new_width, is_color);
+  batch_size = batch_size * num_rotations_img * 4;
 
   cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
-  
+
   this->GenerateBoxes(lines_[lines_id_].first);
   labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
 
-  
-  CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+
+  CHECK(cv_img_origin.data) << "Could not load " << lines_[lines_id_].first;
 
   std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(0), num_rotations_img, min_rotation_angle, max_rotation_angle);
 
-  for (int i = 0; i < augumented_images.size(); ++i)
-  {
-      std::string path  = "/home/liebmatt/images/" + create_raw_name(lines_[lines_id_].first) + "_" + ".png";
-      cv::imwrite(path, augumented_images.at(i));
-  }
-
   // Use data_transformer to infer the expected blob shape from a cv_img.
-  vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
+  vector<int> top_shape = this->data_transformer_->InferBlobShape(augumented_images.at(0));
   this->transformed_data_.Reshape(top_shape);
   // Reshape batch according to the batch_size.
   top_shape[0] = batch_size;
@@ -173,61 +150,52 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int lines_size = lines_.size();
   for (int item_id = 0; item_id < batch_size; ++item_id) {
     // get a blob
-    timer.Start();
+    //timer.Start();
     CHECK_GT(lines_size, lines_id_);
-    cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
-        new_height, new_width, is_color);
 
     this->GenerateBoxes(lines_[lines_id_].first);
     labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
 
     cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
 
-    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(0), num_rotations_img, min_rotation_angle, max_rotation_angle);
-    srand (static_cast <unsigned> (time(0)));
-    for (int i = 0; i < augumented_images.size(); ++i)
-    {
+    // Restricted to 4 bounding boxes, because of the lack of top_shape comp.
+    for (int j = 0; j < bounding_boxes.size() && j < 4; j++){
+      std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_boxes.at(j), num_rotations_img, min_rotation_angle, max_rotation_angle);
+      int current_label = labels.at(j);
+      srand (static_cast <unsigned> (time(0)));
+      for (int i = 0; i < augumented_images.size(); ++i){
+        batch_size = batch_size + (bounding_boxes.size() * num_rotations_img);
 
-      char buffer[300];
+        char buffer[300];
 
+        sprintf(buffer, "/home/liebmatt/images/%s_%d_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), i, current_label, item_id);
 
-      float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-      sprintf(buffer, "/home/liebmatt/images/%s_%f.png", create_raw_name(lines_[lines_id_].first).c_str(), randomNum);
+        LOG(INFO) << lines_[lines_id_].first;
+        std::string path  = buffer;
+        LOG(INFO) << buffer;
+        cv::imwrite(path, resize_image(augumented_images.at(i), new_width, new_height));
+        LOG(INFO) << bounding_boxes.size();
+        LOG(INFO) << batch_size;
 
-      LOG(INFO) << lines_[lines_id_].first;
-      std::string path  = buffer;
-      LOG(INFO) << buffer;
-      cv::imwrite(path, augumented_images.at(i));
-    }
+        top_shape[0] = batch_size;
+        batch->data_.Reshape(top_shape);
 
+        vector<int> label_shape(1, batch_size);
+        batch->label_.Reshape(label_shape);
 
-    CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
-    read_time += timer.MicroSeconds();
-    timer.Start();
-    // Apply transformations (mirror, crop...) to the image
-    int offset = batch->data_.offset(item_id);
-    this->transformed_data_.set_cpu_data(prefetch_data + offset);
-    this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
-    trans_time += timer.MicroSeconds();
+        int offset = batch->data_.offset(item_id);
+        this->transformed_data_.set_cpu_data(prefetch_data + offset);
+        //this->data_transformer_->Transform(resize_image(augumented_images.at(i), new_width, new_height), &(this->transformed_data_));
+        //prefetch_data[i] = augumented_images.at(i);
+        prefetch_label[i] = current_label;
 
-
-    LOG(INFO) << "LABEL: " << lines_[lines_id_].second;
-    prefetch_label[item_id] = lines_[lines_id_].second;
-    // go to the next iter
-    lines_id_++;
-    if (lines_id_ >= lines_size) {
-      // We have reached the end. Restart from the first.
-      DLOG(INFO) << "Restarting data prefetching from start.";
-      lines_id_ = 0;
-      if (this->layer_param_.image_data_param().shuffle()) {
-        ShuffleImages();
       }
     }
+
+
+
+
   }
-  batch_timer.Stop();
-  DLOG(INFO) << "Prefetch batch: " << batch_timer.MilliSeconds() << " ms.";
-  DLOG(INFO) << "     Read time: " << read_time / 1000 << " ms.";
-  DLOG(INFO) << "Transform time: " << trans_time / 1000 << " ms.";
 }
 
 INSTANTIATE_CLASS(ImageDataLayer);

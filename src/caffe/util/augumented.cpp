@@ -10,9 +10,11 @@
 #include <vector>
 #include <math.h>
 #include <cstdlib>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 namespace caffe{
-	
+
 // Loads bounding boxes from file and returns it as an vector.
 std::vector< std::vector<int> > aug_load_bounding_box(std::string image_path){
 	std::vector< std::vector<int> > boundingBoxes;
@@ -67,24 +69,26 @@ std::vector<int> aug_load_labels(std::string image_path){
 // Rotates a image based on the min and max angle and there parameters.
 
 std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> boundingBox, int num_rotations, int min_angle, int max_angle){
-	
+
+	boost::random::mt19937 							generator(time(0));
+
+	boost::random::uniform_int_distribution<>  dist(min_angle, max_angle);
 	std::vector<cv::Mat> images;
-	
-	srand (static_cast <unsigned> (time(0)));
+
 
 	for (int i = 0; i < num_rotations; i++){
 		float angle = 0;
-		// RandomNm will be from 0.0 to 1.0, inclusive
-		float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-		if (randomNum > 0.5)
-			angle = min_angle + randomNum * (max_angle - min_angle);
-		
+
+		angle = dist(generator);
+		//float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+		//angle = min_angle + randomNum * (max_angle - min_angle);
+
 		int ltX = boundingBox.at(0);
 		int ltY = boundingBox.at(1);
 		int rbX = boundingBox.at(2);
 		int rbY = boundingBox.at(3);
 		cv::Point2f midi = (cv::Point2f(ltX, ltY) + cv::Point2f(rbX, rbY))*0.5;
-		
+
 		cv::Mat M, rotated, cropped;
 		cv::RotatedRect rRect = cv::RotatedRect(midi, cv::Size2i(boundingBox.at(2) - boundingBox.at(0), boundingBox.at(3) - boundingBox.at(1)), angle);
 
@@ -93,7 +97,7 @@ std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> 
 		M = cv::getRotationMatrix2D(rRect.center, angle, 1.0);
 		cv::warpAffine(source, rotated, M, source.size(), cv::INTER_CUBIC);
 		cv::getRectSubPix(rotated, rect_size, rRect.center, cropped);
-		
+
 		images.push_back(cropped);
 	}
 
@@ -108,8 +112,8 @@ std::string get_ref_box(std::string image_path){
 
     std::string folder = image_path.substr(0,found);
     std::string filename = image_path.substr(found+1);
-    size_t lastindex = filename.find_last_of("."); 
-    std::string rawname = filename.substr(0, lastindex); 
+    size_t lastindex = filename.find_last_of(".");
+    std::string rawname = filename.substr(0, lastindex);
     std::string ref_box_file = image_path.substr(0, found) + '/' + rawname + ".ref_boxes.txt";
 
     return ref_box_file;
@@ -121,11 +125,16 @@ std::string create_raw_name(std::string image_path){
 
     std::string folder = image_path.substr(0,found);
     std::string filename = image_path.substr(found+1);
-    size_t lastindex = filename.find_last_of("."); 
-    std::string rawname = filename.substr(0, lastindex); 
+    size_t lastindex = filename.find_last_of(".");
+    std::string rawname = filename.substr(0, lastindex);
 
     return rawname;
 }
 
+cv::Mat resize_image(cv::Mat cv_img_origin, int width, int height){
+  cv::Mat cv_img;
+  cv::resize(cv_img_origin, cv_img, cv::Size(width, height));
+  return cv_img;
+}
 
 }
