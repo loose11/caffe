@@ -1,0 +1,35 @@
+name: "CaffeNet"
+layer {
+  name: "data"
+  type: "ImageData"
+  top: "data"
+  top: "label"
+  include { phase: TRAIN }
+  image_data_param {
+    source: "/home/liebmatt/file_test.txt"
+    batch_size: 100
+    new_height: 128
+    new_width: 128
+  }
+  augumented_param {
+    num_rotations_img: 2
+    min_rotation_angle: 7
+    max_rotation_angle: 180
+  }
+}
+layer {
+  name: "ip"
+  type: "InnerProduct"
+  bottom: "data"
+  top: "ip"
+  inner_product_param {
+    num_output: 2
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "ip"
+  bottom: "label"
+  top: "loss"
+}

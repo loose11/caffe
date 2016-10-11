@@ -1,0 +1,59 @@
+name: "CaffeNet"
+layer {
+  name: "data"
+  type: "ImageData"
+  top: "data"
+  top: "label"
+  image_data_param {
+    source: "/home/liebmatt/file_test.txt"
+    batch_size: 100
+    new_height: 128
+    new_width: 128
+  }
+  augumented_param {
+    num_rotations_img: 2
+    min_rotation_angle: 7
+    max_rotation_angle: 180
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  convolution_param {
+    num_output: 40
+    kernel_size: 11
+    stride: 3
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "conv1"
+  top: "conv1"
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layer {
+  name: "s_loss"
+  type: "Softmax"
+  bottom: "pool1"
+  top: "s_loss"
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "s_loss"
+  bottom: "label"
+  top: "loss"
+}

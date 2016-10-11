@@ -1,0 +1,14 @@
+train_net: "/home/liebmatt/caffe/models/uni_augsburg_swim/train.prototxt"
+test_net: "/home/liebmatt/caffe/models/uni_augsburg_swim/val.prototxt"
+test_iter: 168
+test_interval: 500
+base_lr: 0.001
+lr_policy: "step"
+gamma: 0.1
+stepsize: 10000
+display: 50
+max_iter: 40000
+momentum: 0.9
+weight_decay: 0.0005
+snapshot: 10000
+snapshot_prefix: "caffe_swim_train"
