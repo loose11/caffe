@@ -9,7 +9,7 @@
 
 namespace caffe {
 
-std::vector< std::vector<int> >  aug_load_bounding_box(std::string image_path);
+std::vector<int>  aug_load_bounding_box(std::string image_path, int position);
 std::vector<int> aug_load_labels(std::string image_path);
 std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int>, int num_rotations, int min_angle, int max_angle);
 std::string get_ref_box(std::string image_path);
