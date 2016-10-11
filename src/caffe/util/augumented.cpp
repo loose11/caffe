@@ -23,7 +23,7 @@ std::vector<int> aug_load_bounding_box(std::string image_path, int position){
 	std::string str;
 	std::string word;
 
-	int current_line_ = 0
+	int current_line_ = 0;
 	while (std::getline(file, str)){
 		if (current_line_ == position) {
 			std::istringstream iss(str, std::istringstream::in);

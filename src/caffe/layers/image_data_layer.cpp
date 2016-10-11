@@ -62,7 +62,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 
     for(int i = 0; i < labels.size(); i++){
       for(int j = 0; j < num_rotations_img; j++){
-              lines_.push_back(std::make_pair(line.substr(0, pos), label));
+              lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(i)));
       }
     }
   }
