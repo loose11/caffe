@@ -27,7 +27,7 @@ class ImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
   explicit ImageDataLayer(const LayerParameter& param)
       : BasePrefetchingDataLayer<Dtype>(param) {}
   virtual ~ImageDataLayer();
-  virtual void GenerateBoxes(std::string line);
+  virtual void GenerateBox(std::string line, int position);
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 

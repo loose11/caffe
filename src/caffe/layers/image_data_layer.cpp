@@ -37,7 +37,6 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   const int new_height = this->layer_param_.image_data_param().new_height();
   const int new_width  = this->layer_param_.image_data_param().new_width();
-  const bool is_color  = this->layer_param_.image_data_param().is_color();
   string root_folder = this->layer_param_.image_data_param().root_folder();
 
   AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
@@ -59,10 +58,10 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     pos = line.find_last_of(' ');
 
     // Get all labels of a specific image corresponding to the bounding boxes
-    labels = aug_load_labels(get_ref_box(line))
+    labels = aug_load_labels(get_ref_box(line));
 
     for(int i = 0; i < labels.size(); i++){
-      for(int j = 0; j < num_rotations; j++){
+      for(int j = 0; j < num_rotations_img; j++){
               lines_.push_back(std::make_pair(line.substr(0, pos), label));
       }
     }
@@ -166,8 +165,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // get a blob
     timer.Start();
     CHECK_GT(lines_size, lines_id_);
-    cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
-        new_height, new_width, is_color);
+    cv::Mat cv_img = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     read_time += timer.MicroSeconds();
     timer.Start();
