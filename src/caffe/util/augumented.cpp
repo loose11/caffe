@@ -16,28 +16,30 @@
 namespace caffe{
 
 // Loads bounding boxes from file and returns it as an vector.
-std::vector< std::vector<int> > aug_load_bounding_box(std::string image_path){
-	std::vector< std::vector<int> > boundingBoxes;
+std::vector<int> aug_load_bounding_box(std::string image_path, int position){
 	std::vector<int> boundingBox;
 
 	std::ifstream file(image_path.c_str());
 	std::string str;
 	std::string word;
 
+	int current_line_ = 0
 	while (std::getline(file, str)){
-		std::istringstream iss(str, std::istringstream::in);
-		while( iss >> word ){
-			if(boundingBox.size() == 4){
-				break;
+		if (current_line_ == position) {
+			std::istringstream iss(str, std::istringstream::in);
+			while( iss >> word ){
+				if(boundingBox.size() == 4){
+					break;
+				}
+				// atoi instead of stoi because, compiler dont support.
+				boundingBox.push_back(std::atoi(word.c_str()));
 			}
-			// atoi instead of stoi because, compiler dont support.
-			boundingBox.push_back(std::atoi(word.c_str()));
+
 		}
-		boundingBoxes.push_back(boundingBox);
-		boundingBox.clear();
+
 	}
 
-	return boundingBoxes;
+	return boundingBox;
 }
 
 // Return the labels for each bounding box
