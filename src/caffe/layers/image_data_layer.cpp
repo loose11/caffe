@@ -53,7 +53,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   std::ifstream infile(source.c_str());
   string line;
   size_t pos;
-  int label;
+
   while (std::getline(infile, line)) {
     pos = line.find_last_of(' ');
 
