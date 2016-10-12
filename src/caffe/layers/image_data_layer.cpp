@@ -188,7 +188,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
     this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
-    DLOG(INFO) << "BLA LA: " << lines_[lines_id_].second;
+    DLOG(INFO) << "BLA LA: " << lines_[lines_id_].second << " " << lines_[lines_id_].first;
     prefetch_label[item_id] = lines_[lines_id_].second;
     // go to the next iter
     lines_id_++;
