@@ -36,6 +36,7 @@ std::vector<int> aug_load_bounding_box(std::string image_path, int position){
 			}
 
 		}
+		current_line_++;
 
 	}
 
