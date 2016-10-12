@@ -156,7 +156,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   int box_position = 0;
   for (int item_id = 0; item_id < batch_size; ++item_id) {
 
-    if(lines_id_ > 0 && lines_[lines_id_].first == lines_[lines_id_-1].first){
+    if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
       box_position++;
     }else{
       box_position = 0;
