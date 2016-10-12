@@ -160,10 +160,8 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
       // consider the rotation in the lines_ structure, because of multiplication
       rotations--;
-      if(rotations > 0){
+      if(rotations == 0){
         box_position++;
-      }else{
-        box_position = 0;
       }
 
     }else{
