@@ -6,7 +6,7 @@ layer {
   top: "label"
   include { phase: TRAIN }
   image_data_param {
-    source: "/home/liebmatt/file_test.txt"
+    source: "/data/raid_ssd/Datasets/FlickrLogos_v3/train/filelist_abs.txt"
     batch_size: 100
     new_height: 128
     new_width: 128
