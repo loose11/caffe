@@ -73,6 +73,8 @@ std::vector<int> aug_load_labels(std::string image_path){
 
 std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> boundingBox, int num_rotations, float angle){
 
+
+	std::vector<cv::Mat> images;
 	//float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
 	//angle = min_angle + randomNum * (max_angle - min_angle);
 	LOG(WARNING) << "!!!Angle: " << angle;

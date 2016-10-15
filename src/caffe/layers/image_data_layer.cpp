@@ -41,8 +41,8 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 
   AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
   const int num_rotations_img = aug_data_param.num_rotations_img();
-  const int min_rotation_angle = aug_data_param.min_rotation_angle();
-  const int max_rotation_angle = aug_data_param.max_rotation_angle();
+  //const int min_rotation_angle = aug_data_param.min_rotation_angle();
+  //const int max_rotation_angle = aug_data_param.max_rotation_angle();
 
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
@@ -158,7 +158,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   boost::random::mt19937 							generator(time(0));
   boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
-  std::vector<cv::Mat> images;
+
 
   for (int item_id = 0; item_id < batch_size; ++item_id) {
 
