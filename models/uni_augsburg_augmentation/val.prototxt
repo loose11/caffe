@@ -11,9 +11,9 @@ layer {
     new_width: 128
   }
   augumented_param {
-    num_rotations_img: 2
-    min_rotation_angle: 7
-    max_rotation_angle: 180
+    num_rotations_img: 10
+    min_rotation_angle: 0
+    max_rotation_angle: 359
   }
 }
 layer {
