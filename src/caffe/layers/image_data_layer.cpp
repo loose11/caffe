@@ -163,7 +163,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   for (int item_id = 0; item_id < batch_size; ++item_id) {
 
     float angle = dist(generator);
-    LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first;
+    //LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first;
 
     if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
       // consider the rotation in the lines_ structure, because of multiplication
@@ -192,10 +192,10 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // We take only the first, due a correct seed we get different images
     cv_img = resize_image(augumented_images.at(0), new_width, new_height);
     //TODO
-    char buffer[300];
+    /*char buffer[300];
     sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
     std::string path = buffer;
-    cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));
+    cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));*/
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
