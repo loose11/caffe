@@ -1,5 +1,5 @@
 #include "caffe/util/augumented.hpp"
-
+#include "caffe/common.hpp"
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
@@ -85,7 +85,7 @@ std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> 
 		angle = dist(generator);
 		//float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
 		//angle = min_angle + randomNum * (max_angle - min_angle);
-
+		LOG(WARNING) << "!!!Angle: " << angle;
 		int ltX = boundingBox.at(0);
 		int ltY = boundingBox.at(1);
 		int rbX = boundingBox.at(2);
