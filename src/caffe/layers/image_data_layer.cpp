@@ -186,7 +186,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     //TODO
     char buffer[300];
     sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
-    cv::imwrite(path, resize_image(augumented_images.at(i), new_width, new_height));
+    cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
