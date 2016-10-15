@@ -71,38 +71,28 @@ std::vector<int> aug_load_labels(std::string image_path){
 
 // Rotates a image based on the min and max angle and there parameters.
 
-std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> boundingBox, int num_rotations, int min_angle, int max_angle){
+std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> boundingBox, int num_rotations, float angle){
 
-	boost::random::mt19937 							generator(time(0));
+	//float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+	//angle = min_angle + randomNum * (max_angle - min_angle);
+	LOG(WARNING) << "!!!Angle: " << angle;
+	int ltX = boundingBox.at(0);
+	int ltY = boundingBox.at(1);
+	int rbX = boundingBox.at(2);
+	int rbY = boundingBox.at(3);
+	cv::Point2f midi = (cv::Point2f(ltX, ltY) + cv::Point2f(rbX, rbY))*0.5;
 
-	boost::random::uniform_int_distribution<>  dist(min_angle, max_angle);
-	std::vector<cv::Mat> images;
+	cv::Mat M, rotated, cropped;
+	cv::RotatedRect rRect = cv::RotatedRect(midi, cv::Size2i(boundingBox.at(2) - boundingBox.at(0), boundingBox.at(3) - boundingBox.at(1)), angle);
 
+	cv::Size rect_size = rRect.size;
 
-	for (int i = 0; i < num_rotations; i++){
-		float angle = 0;
+	M = cv::getRotationMatrix2D(rRect.center, angle, 1.0);
+	cv::warpAffine(source, rotated, M, source.size(), cv::INTER_CUBIC);
+	cv::getRectSubPix(rotated, rect_size, rRect.center, cropped);
 
-		angle = dist(generator);
-		//float randomNum = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-		//angle = min_angle + randomNum * (max_angle - min_angle);
-		LOG(WARNING) << "!!!Angle: " << angle;
-		int ltX = boundingBox.at(0);
-		int ltY = boundingBox.at(1);
-		int rbX = boundingBox.at(2);
-		int rbY = boundingBox.at(3);
-		cv::Point2f midi = (cv::Point2f(ltX, ltY) + cv::Point2f(rbX, rbY))*0.5;
+	images.push_back(cropped);
 
-		cv::Mat M, rotated, cropped;
-		cv::RotatedRect rRect = cv::RotatedRect(midi, cv::Size2i(boundingBox.at(2) - boundingBox.at(0), boundingBox.at(3) - boundingBox.at(1)), angle);
-
-		cv::Size rect_size = rRect.size;
-
-		M = cv::getRotationMatrix2D(rRect.center, angle, 1.0);
-		cv::warpAffine(source, rotated, M, source.size(), cv::INTER_CUBIC);
-		cv::getRectSubPix(rotated, rect_size, rRect.center, cropped);
-
-		images.push_back(cropped);
-	}
 
     return images;
 }

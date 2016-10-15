@@ -155,7 +155,16 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int lines_size = lines_.size();
   int box_position = 0;
   int rotations = num_rotations_img;
+
+  boost::random::mt19937 							generator(time(0));
+
+	boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
+	std::vector<cv::Mat> images;
+
   for (int item_id = 0; item_id < batch_size; ++item_id) {
+
+    float angle = dist(generator);
+    LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first
 
     if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
       // consider the rotation in the lines_ structure, because of multiplication
@@ -180,7 +189,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
     // Going to find the bounding boxes, which discribe parts of the image
     this->GenerateBox(lines_[lines_id_].first, box_position);
-    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, min_rotation_angle, max_rotation_angle);
+    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
     // We take only the first, due a correct seed we get different images
     cv_img = resize_image(augumented_images.at(0), new_width, new_height);
     //TODO
