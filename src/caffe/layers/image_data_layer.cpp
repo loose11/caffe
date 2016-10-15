@@ -77,7 +77,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->GenerateBox(lines_[lines_id_].first, 0);
   labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
   cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
-  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_box, num_rotations_img, min_rotation_angle, max_rotation_angle);
+  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_box, num_rotations_img, 1.);
 
   cv::Mat resized_image = resize_image(augumented_images.at(0), new_width, new_height);
 
@@ -157,14 +157,13 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   int rotations = num_rotations_img;
 
   boost::random::mt19937 							generator(time(0));
-
-	boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
-	std::vector<cv::Mat> images;
+  boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
+  std::vector<cv::Mat> images;
 
   for (int item_id = 0; item_id < batch_size; ++item_id) {
 
     float angle = dist(generator);
-    LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first
+    LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first;
 
     if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
       // consider the rotation in the lines_ structure, because of multiplication
@@ -195,6 +194,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     //TODO
     char buffer[300];
     sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
+    std::string path = buffer;
     cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
