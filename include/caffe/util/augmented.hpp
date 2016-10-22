@@ -1,5 +1,5 @@
-#ifndef CAFFE_UTIL_AUGUMENTED_H_
-#define CAFFE_UTIL_AUGUMENTED_H_
+#ifndef CAFFE_UTIL_AUGMENTED_H_
+#define CAFFE_UTIL_AUGMENTED_H_
 
 #include <vector>
 #include <string>
@@ -16,4 +16,4 @@ std::string get_ref_box(std::string image_path);
 std::string create_raw_name(std::string image_path);
 cv::Mat resize_image(cv::Mat cv_img_origin, int width, int height);
 }
-#endif  // CAFFE_UTIL_AUGUMENTED_H_
+#endif  // CAFFE_UTIL_AUGMENTED_H_

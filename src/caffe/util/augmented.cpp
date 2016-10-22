@@ -1,4 +1,4 @@
-#include "caffe/util/augumented.hpp"
+#include "caffe/util/augmented.hpp"
 #include "caffe/common.hpp"
 #include <iostream>
 #include <stdio.h>

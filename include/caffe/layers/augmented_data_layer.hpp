@@ -11,7 +11,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/layers/base_data_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
-#include "caffe/util/augumented.hpp"
+#include "caffe/util/augmented.hpp"
 
 
 namespace caffe {

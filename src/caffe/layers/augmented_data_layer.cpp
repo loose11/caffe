@@ -15,7 +15,7 @@
 #include "caffe/util/io.hpp"
 #include "caffe/util/math_functions.hpp"
 #include "caffe/util/rng.hpp"
-#include "caffe/util/augumented.hpp"
+#include "caffe/util/augmented.hpp"
 
 using namespace cv;
 using namespace std;
@@ -78,9 +78,9 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   this->GenerateBox(lines_[lines_id_].first, 0);
   labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
   cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
-  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_box, num_rotations_img, 1.);
+  std::vector<cv::Mat> augmented_images = aug_create_rotated_images(cv_img_origin, bounding_box, num_rotations_img, 1.);
 
-  cv::Mat resized_image = resize_image(augumented_images.at(0), new_width, new_height);
+  cv::Mat resized_image = resize_image(augmented_images.at(0), new_width, new_height);
 
   CHECK(resized_image.data) << "Could not load " << lines_[lines_id_].first;
 
@@ -189,14 +189,14 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
     // Going to find the bounding boxes, which discribe parts of the image
     this->GenerateBox(lines_[lines_id_].first, box_position);
-    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
+    std::vector<cv::Mat> augmented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
     // We take only the first, due a correct seed we get different images
-    cv_img = resize_image(augumented_images.at(0), new_width, new_height);
+    cv_img = resize_image(augmented_images.at(0), new_width, new_height);
     //TODO
     /*char buffer[300];
     sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
     std::string path = buffer;
-    cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));*/
+    cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));*/
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
