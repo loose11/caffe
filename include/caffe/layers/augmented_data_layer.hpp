@@ -50,4 +50,4 @@ class AugmentedDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
 }  // namespace caffe
 
-#endif  // CAFFE_IMAGE_DATA_LAYER_HPP_
+#endif  // CAFFE_AUGMENTED_DATA_LAYER_HPP_
