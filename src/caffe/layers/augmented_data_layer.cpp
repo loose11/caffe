@@ -29,6 +29,10 @@ AugmentedDataLayer<Dtype>::~AugmentedDataLayer<Dtype>() {
 
 template <typename Dtype>
 void AugmentedDataLayer<Dtype>::GenerateBox(string line, int position){
+    /*
+    * Generating the path to the file of the bounding box description,
+    * and load the postion related bounding box.
+    */
     std::string ref_box_file = get_ref_box(line);
     bounding_box = aug_load_bounding_box(ref_box_file, position);
 }
@@ -36,14 +40,15 @@ void AugmentedDataLayer<Dtype>::GenerateBox(string line, int position){
 template <typename Dtype>
 void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+  
+  // Get the preferred output size of the data.
   const int new_height = this->layer_param_.image_data_param().new_height();
   const int new_width  = this->layer_param_.image_data_param().new_width();
   string root_folder = this->layer_param_.image_data_param().root_folder();
 
+  // Load only the num_rotations, because here is it only needed to infer the blob shape
   AugmentedDataParameter aug_data_param = this->layer_param_.augmented_param();
   const int num_rotations_img = aug_data_param.num_rotations_img();
-  //const int min_rotation_angle = aug_data_param.min_rotation_angle();
-  //const int max_rotation_angle = aug_data_param.max_rotation_angle();
 
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
@@ -74,7 +79,7 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
 
   lines_id_ = 0;
 
-  // Read an image, and use it to initialize the top blob.
+  // Read the first image, and use it to initialize the top blob.
   this->GenerateBox(lines_[lines_id_].first, 0);
   labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
   cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
@@ -107,12 +112,6 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   }
 }
 
-template <typename Dtype>
-void AugmentedDataLayer<Dtype>::ShuffleImages() {
-  caffe::rng_t* prefetch_rng =
-      static_cast<caffe::rng_t*>(prefetch_rng_->generator());
-  shuffle(lines_.begin(), lines_.end(), prefetch_rng);
-}
 
 // This function is called on prefetch thread
 template <typename Dtype>
@@ -128,7 +127,6 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int batch_size = image_data_param.batch_size();
   const int new_height = image_data_param.new_height();
   const int new_width = image_data_param.new_width();
-  //const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
   AugmentedDataParameter aug_data_param = this->layer_param_.augmented_param();
@@ -157,9 +155,9 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   int box_position = 0;
   int rotations = num_rotations_img;
 
+  // Distribution over the rotation_angle for the later randomization
   boost::random::mt19937 							generator(time(0));
   boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
-
 
   for (int item_id = 0; item_id < batch_size; ++item_id) {
 
@@ -174,6 +172,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
       }
 
     }else{
+      // Reached a new file, reset all.
       box_position = 0;
       rotations = num_rotations_img;
     }
@@ -192,17 +191,19 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     std::vector<cv::Mat> augmented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
     // We take only the first, due a correct seed we get different images
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
-    //TODO
+
+    // Comment in if you want to save the images
     /*char buffer[300];
     sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
     std::string path = buffer;
     cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));*/
+
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
     this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
-//    DLOG(INFO) << "BLA LA: " << lines_[lines_id_].second << " " << lines_[lines_id_].first;
+
     prefetch_label[item_id] = lines_[lines_id_].second;
     // go to the next iter
     lines_id_++;

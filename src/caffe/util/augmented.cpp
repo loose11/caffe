@@ -15,7 +15,7 @@
 
 namespace caffe{
 
-// Loads bounding boxes from file and returns it as an vector.
+// Loads a specific bounding box from file and returns it as an vector.
 std::vector<int> aug_load_bounding_box(std::string image_path, int position){
 	std::vector<int> boundingBox;
 
@@ -99,7 +99,7 @@ std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int> 
     return images;
 }
 
-
+// Calculate the file path of the reference file
 std::string get_ref_box(std::string image_path){
 
 	size_t found;
@@ -114,6 +114,7 @@ std::string get_ref_box(std::string image_path){
     return ref_box_file;
 }
 
+// Create raw name out of the image_path
 std::string create_raw_name(std::string image_path){
 	size_t found;
     found=image_path.find_last_of("/\\");
@@ -126,6 +127,8 @@ std::string create_raw_name(std::string image_path){
     return rawname;
 }
 
+
+// Resizes images with specificed width and height
 cv::Mat resize_image(cv::Mat cv_img_origin, int width, int height){
   cv::Mat cv_img;
   cv::resize(cv_img_origin, cv_img, cv::Size(width, height));

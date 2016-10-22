@@ -19,7 +19,7 @@ namespace caffe {
 /**
  * @brief Provides data to the Net from image files.
  *
- * TODO(dox): thorough documentation for Forward and proto params.
+ *
  */
 template <typename Dtype>
 class AugmentedDataLayer : public BasePrefetchingDataLayer<Dtype> {
@@ -37,7 +37,6 @@ class AugmentedDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
  protected:
   shared_ptr<Caffe::RNG> prefetch_rng_;
-  virtual void ShuffleImages();
   virtual void load_batch(Batch<Dtype>* batch);
 
   vector<std::pair<std::string, int> > lines_;
