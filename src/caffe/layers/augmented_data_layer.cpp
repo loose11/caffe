@@ -40,7 +40,7 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   const int new_width  = this->layer_param_.image_data_param().new_width();
   string root_folder = this->layer_param_.image_data_param().root_folder();
 
-  AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
+  AugmentedDataParameter aug_data_param = this->layer_param_.augmented_param();
   const int num_rotations_img = aug_data_param.num_rotations_img();
   //const int min_rotation_angle = aug_data_param.min_rotation_angle();
   //const int max_rotation_angle = aug_data_param.max_rotation_angle();
