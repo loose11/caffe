@@ -1,70 +1,53 @@
-#ifndef CAFFE_AUGUMENTED_DATA_LAYERS_HPP_
-#define CAFFE_AUGUMENTED_DATA_LAYERS_HPP_
+#ifndef CAFFE_AUGMENTED_DATA_LAYER_HPP_
+#define CAFFE_AUGMENTED_DATA_LAYER_HPP_
 
-#include <vector>
-
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <iostream>
-#include <stdio.h>
-#include <fstream>
 #include <string>
-#include <iterator>
-#include <algorithm>
-#include <sstream>
+#include <utility>
 #include <vector>
-#include <math.h>
 
 #include "caffe/blob.hpp"
+#include "caffe/data_transformer.hpp"
+#include "caffe/internal_thread.hpp"
 #include "caffe/layer.hpp"
-#include "caffe/proto/caffe.pb.h"
-
 #include "caffe/layers/base_data_layer.hpp"
+#include "caffe/proto/caffe.pb.h"
+#include "caffe/util/augumented.hpp"
+
 
 namespace caffe {
 
 /**
- * @brief Provides data to the Net with augumented data input.
+ * @brief Provides data to the Net from image files.
  *
+ * TODO(dox): thorough documentation for Forward and proto params.
  */
 template <typename Dtype>
-class AUGUMENTEDDataLayer : public Layer<Dtype> {
+class AugmentedDataLayer : public BasePrefetchingDataLayer<Dtype> {
  public:
-  explicit AUGUMENTEDDataLayer(const LayerParameter& param)
-      : Layer<Dtype>(param) {}
-  virtual ~AUGUMENTEDDataLayer();
-  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+  explicit AugmentedDataLayer(const LayerParameter& param)
+      : BasePrefetchingDataLayer<Dtype>(param) {}
+  virtual ~AugmentedDataLayer();
+  virtual void GenerateBox(std::string line, int position);
+  virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
-  // Data layers should be shared by multiple solvers in parallel
-  virtual inline bool ShareInParallel() const { return true; }
-  // Data layers have no bottoms, so reshaping is trivial.
-  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top) {}
 
-  virtual inline const char* type() const { return "AUGUMENTEDData"; }
+  virtual inline const char* type() const { return "ImageData"; }
   virtual inline int ExactNumBottomBlobs() const { return 0; }
-  virtual inline int MinTopBlobs() const { return 1; }
+  virtual inline int ExactNumTopBlobs() const { return 2; }
 
  protected:
-  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top);
-  //virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
-    //  const vector<Blob<Dtype>*>& top);
-  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
-      const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
-  //virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
-    //  const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {}
-  virtual void LoadImageFileData(const char* filename);
+  shared_ptr<Caffe::RNG> prefetch_rng_;
+  virtual void ShuffleImages();
+  virtual void load_batch(Batch<Dtype>* batch);
 
-  std::vector<std::string> aug_filenames_;
-  unsigned int num_files_;
-  unsigned int current_file_;
-  unsigned int current_row_;
-  std::vector<shared_ptr<Blob<Dtype> > > image_blobs_;
-  std::vector<unsigned int> data_permutation_;
-  std::vector<unsigned int> file_permutation_;
+  vector<std::pair<std::string, int> > lines_;
+  int lines_id_;
+
+  std::vector<int> bounding_box;
+  std::vector<int> labels;
 };
+
 
 }  // namespace caffe
 
-#endif  // CAFFE_AUGUMENTED_DATA_LAYERS_HPP_
+#endif  // CAFFE_IMAGE_DATA_LAYER_HPP_

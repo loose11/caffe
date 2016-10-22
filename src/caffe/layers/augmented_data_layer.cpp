@@ -1,134 +1,224 @@
-#include "stdint.h"
+#ifdef USE_OPENCV
+#include <opencv2/core/core.hpp>
 
-#include "caffe/layers/augmented_data_layer.hpp"
+#include <fstream>  // NOLINT(readability/streams)
+#include <iostream>  // NOLINT(readability/streams)
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "caffe/data_transformer.hpp"
+#include "caffe/layers/base_data_layer.hpp"
+#include "caffe/layers/image_data_layer.hpp"
+#include "caffe/util/benchmark.hpp"
+#include "caffe/util/io.hpp"
+#include "caffe/util/math_functions.hpp"
+#include "caffe/util/rng.hpp"
+#include "caffe/util/augumented.hpp"
+
+using namespace cv;
+using namespace std;
 
 namespace caffe {
 
 template <typename Dtype>
-AUGUMENTEDDataLayer<Dtype>::~AUGUMENTEDDataLayer<Dtype>() { }
-
-// Load data and label from HDF5 filename into the class property blobs.
-template <typename Dtype>
-void AUGUMENTEDDataLayer<Dtype>::LoadImageFileData(const char* filename) {
-	DLOG(INFO) << "Loading image file: " << filename;
-	// Loading the image
-	cv::Mat image_file = cv::imread(filename);
-	if (!image_file.data) {
-		LOG(FATAL) << "Failed opening image file: " << filename;
-	}
-
-	int top_size = this->layer_param_.top_size();
-	image_blobs_.resize(top_size);
-
-	for(int i = 0; i < top_size; ++i){
-		image_blobs_[i] = shared_ptr<Blob<Dtype> >(new Blob<Dtype>());
-		// 1 have to the batch size
-		image_blobs_[i].get()->Reshape(1, image_file.channels(), image_file.rows, image_file.cols);
-	}
-	
-	CHECK_GE(image_blobs_[0]->num_axes(), 1) << "Input must have at least 1 axis.";
-	const int num = image_blobs_[0]->shape(0);
-	for(int i = 1; i < top_size; ++i){
-			CHECK_EQ(image_blobs_[i]->shape(0), num);
-	}
-	
-	// Default to identity permutation.
-	data_permutation_.clear();
-	data_permutation_.resize(image_blobs_[0]->shape(0));
-	for (int i = 0; i < image_blobs_[0]->shape(0); i++)
-		data_permutation_[i] = i;
-
-	DLOG(INFO) << "Successully loaded " << image_blobs_[0]->shape(0) << " rows";
-
+AugmentedDataLayer<Dtype>::~AugmentedDataLayer<Dtype>() {
+  this->StopInternalThread();
 }
 
 template <typename Dtype>
-void AUGUMENTEDDataLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+void AugmentedDataLayer<Dtype>::GenerateBox(string line, int position){
+    std::string ref_box_file = get_ref_box(line);
+    bounding_box = aug_load_bounding_box(ref_box_file, position);
+}
+
+template <typename Dtype>
+void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
-	AugumentedDataParameter const& aug_param = this->layer_param_.augumented_param();
-	string const& source = aug_param.source();
-	LOG(INFO) << "Loading images from file list: " << source;
-	const int batch_size = aug_param.batch_size();
-	/*this->num_rotations_img = aug_param.num_rotations_img();
-	this->min_rotation_angle = aug_param.min_rotation_angle();
-	this->max_rotation_angle = aug_param.max_rotation_angle();*/
-	
-	// Read all filenames from list into a vector
-	aug_filenames_.clear();
-	std::ifstream source_file(source.c_str());
-	if(source_file.is_open()){
-		std::string line;
-		while(source_file >> line){
-			aug_filenames_.push_back(line);
-		}
-	}else{
-		LOG(FATAL) << "Failed to open source file: " << source;
-	}
-	source_file.close();
-	num_files_ = aug_filenames_.size();
-	current_file_ = 0;
-	LOG(INFO) << "Number of image files: " << num_files_;
-	CHECK_GE(num_files_, 1) << "Must have at least 1 image filename listed in "
-    << source;
-	
-	file_permutation_.clear();
-	file_permutation_.resize(num_files_);
-	// Default to identity permutation.
-	for (int i = 0; i < num_files_; i++) {
-		file_permutation_[i] = i;
-	}
-	LOG(INFO) << "Loading files...";
-	LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
-	current_row_ = 0;
-	
-	// Reshape blobs
-	const int top_size = this->layer_param_.top_size();
-	vector<int> top_shape;
-	for(int i = 0; i < top_size; ++i){
-			top_shape.resize(image_blobs_[i]->num_axes());
-			top_shape[0] = batch_size;
-			for(int j = 1; j < top_shape.size(); ++j){
-				top_shape[j] = image_blobs_[i]->shape(j);
-			}
-			top[i]->Reshape(top_shape);
-	}
+  const int new_height = this->layer_param_.image_data_param().new_height();
+  const int new_width  = this->layer_param_.image_data_param().new_width();
+  string root_folder = this->layer_param_.image_data_param().root_folder();
 
+  AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
+  const int num_rotations_img = aug_data_param.num_rotations_img();
+  //const int min_rotation_angle = aug_data_param.min_rotation_angle();
+  //const int max_rotation_angle = aug_data_param.max_rotation_angle();
+
+  CHECK((new_height == 0 && new_width == 0) ||
+      (new_height > 0 && new_width > 0)) << "Current implementation requires "
+      "new_height and new_width to be set at the same time.";
+  // Read the file with filenames and labels
+  const string& source = this->layer_param_.image_data_param().source();
+  LOG(INFO) << "Opening file " << source;
+  std::ifstream infile(source.c_str());
+  string line;
+  size_t pos;
+
+  while (std::getline(infile, line)) {
+    pos = line.find_last_of(' ');
+
+    // Get all labels of a specific image corresponding to the bounding boxes
+    labels = aug_load_labels(get_ref_box(line));
+
+    for(int i = 0; i < labels.size(); i++){
+      for(int j = 0; j < num_rotations_img; j++){
+              lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(i)));
+      }
+    }
+  }
+
+  CHECK(!lines_.empty()) << "File is empty";
+
+  LOG(INFO) << "A total of " << lines_.size() << " images.";
+
+  lines_id_ = 0;
+
+  // Read an image, and use it to initialize the top blob.
+  this->GenerateBox(lines_[lines_id_].first, 0);
+  labels = aug_load_labels(get_ref_box(lines_[lines_id_].first));
+  cv::Mat cv_img_origin = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+  std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img_origin, bounding_box, num_rotations_img, 1.);
+
+  cv::Mat resized_image = resize_image(augumented_images.at(0), new_width, new_height);
+
+  CHECK(resized_image.data) << "Could not load " << lines_[lines_id_].first;
+
+  // Use data_transformer to infer the expected blob shape from a cv_image.
+  vector<int> top_shape = this->data_transformer_->InferBlobShape(resized_image);
+  this->transformed_data_.Reshape(top_shape);
+  // Reshape prefetch_data and top[0] according to the batch_size.
+  const int batch_size = this->layer_param_.image_data_param().batch_size();
+  CHECK_GT(batch_size, 0) << "Positive batch size required";
+  top_shape[0] = batch_size;
+  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
+    this->prefetch_[i].data_.Reshape(top_shape);
+  }
+  top[0]->Reshape(top_shape);
+
+  LOG(INFO) << "output data size: " << top[0]->num() << ","
+      << top[0]->channels() << "," << top[0]->height() << ","
+      << top[0]->width();
+  // label
+  vector<int> label_shape(1, batch_size);
+  top[1]->Reshape(label_shape);
+  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
+    this->prefetch_[i].label_.Reshape(label_shape);
+  }
 }
 
 template <typename Dtype>
-void AUGUMENTEDDataLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top) {
-	const int batch_size = this->layer_param_.augumented_param().batch_size();
-	// TODO current_row ist falsch, oder?
-	for(int i = 0; i < batch_size; ++i, ++current_row_){
-		// If we reached the batch_siez
-		if(current_row_ == image_blobs_[0]->shape(0)){
-			if(num_files_ > 1){
-				++current_file_;
-				if(current_file_ == num_files_){
-						current_file_ = 0;
-						DLOG(INFO) << "Looping around to first image.";
-				}
-				LoadImageFileData(aug_filenames_[file_permutation_[current_file_]].c_str());
-			}
-			current_row_ = 0;
-		}
-		for(int j = 0; j < this->layer_param_.top_size(); ++j){
-			int data_dim = top[j]->count() / top[j]->shape(0);
-			DLOG(INFO) << "Dimension: " << data_dim;
-			caffe_copy(data_dim,
-				&image_blobs_[j]->cpu_data()[data_permutation_[current_row_]
-					* data_dim], &top[j]->mutable_cpu_data()[i * data_dim]);
-		}
-	}
-	
+void AugmentedDataLayer<Dtype>::ShuffleImages() {
+  caffe::rng_t* prefetch_rng =
+      static_cast<caffe::rng_t*>(prefetch_rng_->generator());
+  shuffle(lines_.begin(), lines_.end(), prefetch_rng);
 }
 
-#ifdef CPU_ONLY
-STUB_GPU_FORWARD(AUGUMENTEDDataLayer, Forward);
-#endif
+// This function is called on prefetch thread
+template <typename Dtype>
+void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+  CPUTimer batch_timer;
+  batch_timer.Start();
+  double read_time = 0;
+  double trans_time = 0;
+  CPUTimer timer;
+  CHECK(batch->data_.count());
+  CHECK(this->transformed_data_.count());
+  ImageDataParameter image_data_param = this->layer_param_.image_data_param();
+  const int batch_size = image_data_param.batch_size();
+  const int new_height = image_data_param.new_height();
+  const int new_width = image_data_param.new_width();
+  //const bool is_color = image_data_param.is_color();
+  string root_folder = image_data_param.root_folder();
 
-INSTANTIATE_CLASS(AUGUMENTEDDataLayer);
-REGISTER_LAYER_CLASS(AUGUMENTEDData);
+  AugumentedDataParameter aug_data_param = this->layer_param_.augumented_param();
+  const int num_rotations_img = aug_data_param.num_rotations_img();
+  const int min_rotation_angle = aug_data_param.min_rotation_angle();
+  const int max_rotation_angle = aug_data_param.max_rotation_angle();
+
+  // Reshape according to the first image of each batch
+  // on single input batches allows for inputs of varying dimension.
+  cv::Mat cv_img = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+  // Resize only for shape construction
+  cv_img = resize_image(cv_img, new_width, new_height);
+  CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+  // Use data_transformer to infer the expected blob shape from a cv_img.
+  vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img);
+  this->transformed_data_.Reshape(top_shape);
+  // Reshape batch according to the batch_size.
+  top_shape[0] = batch_size;
+  batch->data_.Reshape(top_shape);
+
+  Dtype* prefetch_data = batch->data_.mutable_cpu_data();
+  Dtype* prefetch_label = batch->label_.mutable_cpu_data();
+
+  // datum scales
+  const int lines_size = lines_.size();
+  int box_position = 0;
+  int rotations = num_rotations_img;
+
+  boost::random::mt19937 							generator(time(0));
+  boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
+
+
+  for (int item_id = 0; item_id < batch_size; ++item_id) {
+
+    float angle = dist(generator);
+    //LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first;
+
+    if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
+      // consider the rotation in the lines_ structure, because of multiplication
+      rotations--;
+      if(rotations == 0){
+        box_position++;
+      }
+
+    }else{
+      box_position = 0;
+      rotations = num_rotations_img;
+    }
+
+    // get a blob
+    timer.Start();
+    CHECK_GT(lines_size, lines_id_);
+    cv::Mat cv_img = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
+    CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+    read_time += timer.MicroSeconds();
+    timer.Start();
+    // Apply transformations (mirror, crop...) to the image
+
+    // Going to find the bounding boxes, which discribe parts of the image
+    this->GenerateBox(lines_[lines_id_].first, box_position);
+    std::vector<cv::Mat> augumented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
+    // We take only the first, due a correct seed we get different images
+    cv_img = resize_image(augumented_images.at(0), new_width, new_height);
+    //TODO
+    /*char buffer[300];
+    sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
+    std::string path = buffer;
+    cv::imwrite(path, resize_image(augumented_images.at(0), new_width, new_height));*/
+    // Send data to upper level
+    int offset = batch->data_.offset(item_id);
+    this->transformed_data_.set_cpu_data(prefetch_data + offset);
+    this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
+    trans_time += timer.MicroSeconds();
+//    DLOG(INFO) << "BLA LA: " << lines_[lines_id_].second << " " << lines_[lines_id_].first;
+    prefetch_label[item_id] = lines_[lines_id_].second;
+    // go to the next iter
+    lines_id_++;
+    if (lines_id_ >= lines_size) {
+      // We have reached the end. Restart from the first.
+      DLOG(INFO) << "Restarting data prefetching from start.";
+      lines_id_ = 0;
+    }
+  }
+  batch_timer.Stop();
+  DLOG(INFO) << "Prefetch batch: " << batch_timer.MilliSeconds() << " ms.";
+  DLOG(INFO) << "     Read time: " << read_time / 1000 << " ms.";
+  DLOG(INFO) << "Transform time: " << trans_time / 1000 << " ms.";
+}
+
+INSTANTIATE_CLASS(AugmentedDataLayer);
+REGISTER_LAYER_CLASS(AugmentedData);
 
 }  // namespace caffe
+#endif  // USE_OPENCV
