@@ -127,12 +127,13 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int batch_size = image_data_param.batch_size();
   const int new_height = image_data_param.new_height();
   const int new_width = image_data_param.new_width();
-  string root_folder = image_data_param.root_folder();
+  std::string root_folder = image_data_param.root_folder();
 
   AugmentedDataParameter aug_data_param = this->layer_param_.augmented_param();
   const int num_rotations_img = aug_data_param.num_rotations_img();
   const int min_rotation_angle = aug_data_param.min_rotation_angle();
   const int max_rotation_angle = aug_data_param.max_rotation_angle();
+  const std::string output_directory = aug_data_param.output_directory();
 
   // Reshape according to the first image of each batch
   // on single input batches allows for inputs of varying dimension.
@@ -193,10 +194,13 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
 
     // Comment in if you want to save the images
-    /*char buffer[300];
-    sprintf(buffer, "/home/liebmatt/images/%s_%d_%d.png", create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
-    std::string path = buffer;
-    cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));*/
+    if(output_directory != NULL){
+      char buffer[300];
+      sprintf(buffer, "%s%s_%d_%d.png", output_directory, create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
+      std::string path = buffer;
+      cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));
+    }
+
 
     // Send data to upper level
     int offset = batch->data_.offset(item_id);

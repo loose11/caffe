@@ -489,6 +489,9 @@ message AugmentedDataParameter {
 	optional uint32 min_rotation_angle = 4;
 	optional uint32 max_rotation_angle = 5;
 
+  // Save augmented data to output_directory
+  optional string output_directory = 6
+
 }
 
 
