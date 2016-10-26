@@ -10,7 +10,7 @@ layer {
     new_height: 128
     new_width: 128
   }
-  augumented_param {
+  augmented_param {
     num_rotations_img: 10
     min_rotation_angle: 0
     max_rotation_angle: 359
