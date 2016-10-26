@@ -15,5 +15,6 @@ layer {
     num_rotations_img: 10
     min_rotation_angle: 0
     max_rotation_angle: 5
+    output_directory: "/home/liebmatt/images/"
   }
 }
