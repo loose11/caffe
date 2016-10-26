@@ -194,7 +194,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
 
     // Comment in if you want to save the images
-    if(output_directory != NULL){
+    if(!output_directory.empty()){
       char buffer[300];
       sprintf(buffer, "%s%s_%d_%d.png", output_directory, create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
       std::string path = buffer;
