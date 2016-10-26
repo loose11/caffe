@@ -1,7 +1,7 @@
 name: "CaffeNet"
 layer {
   name: "data"
-  type: "ImageData"
+  type: "AugmentedData"
   top: "data"
   top: "label"
   image_data_param {
