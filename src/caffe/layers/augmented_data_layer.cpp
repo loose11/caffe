@@ -17,6 +17,9 @@
 #include "caffe/util/rng.hpp"
 #include "caffe/util/augmented.hpp"
 
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
+
 using namespace cv;
 using namespace std;
 
