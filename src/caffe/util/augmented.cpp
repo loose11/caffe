@@ -149,7 +149,11 @@ cv::Mat translate_image(cv::Mat cv_img, int offset_x, int offset_y)
 {
 
     cv::Mat t(2, 3, CV_64F, cvScalar(0.0));
+	t.at<double>(0,0) = 1;
+	t.at<double>(0,1) = 0;
 	t.at<double>(0,2) = offset_x;
+	t.at<double>(1,0) = 0;
+	t.at<double>(1,1) = 1;
 	t.at<double>(1,2) = offset_y;
 
 	cv::Mat dest;
