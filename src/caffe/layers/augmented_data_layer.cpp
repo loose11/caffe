@@ -206,7 +206,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     }
 
     // Going to find the bounding boxes, which discribe parts of the image
-    this->GenerateBox(lines_[lines_id_].first, box_position);
+   /*  this->GenerateBox(lines_[lines_id_].first, box_position);
     std::vector<cv::Mat> augmented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
     // We take only the first, due a correct seed we get different images
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
