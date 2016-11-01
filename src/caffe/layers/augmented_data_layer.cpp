@@ -220,7 +220,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
     // Apply transformations (mirror, crop...) to the image
 
     // translate image through gausian distribution
-    if (mean != 0 && s_deviation != 0)
+    if (mean != 0 || s_deviation != 0)
     {
       double random = var_nor();
       double translation = (int (random * cv_img.cols)) % max_translation;
