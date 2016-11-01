@@ -200,7 +200,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     cv_img = translate_image(cv_img, 10, 0);
     if(!output_directory.empty()){
       char buffer[300];
-      sprintf(buffer, "translate_%s%s_%d_%d.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
+      sprintf(buffer, "%s%s_%d_%d_translate.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
       std::string path = buffer;
       cv::imwrite(path, cv_img);
     }
