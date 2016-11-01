@@ -6,10 +6,9 @@ Checkout the release branch and use the normal setup workflow of the caffe frame
 
 ## Usage
 Through the constraints of this project, you can configure your Augmentation Layer pretty easy. 
-There is one constraint in the Augmentation Layer definition, because you need to specifiy a file
-where the absolute paths of the images are saved. 
+Following there are numerous nuts and bolts with which one can make adjustments to the layer. 
 
-See definition:
+First of all, you have to provide the correct file structure.
 
 __filelist_abs.txt:__
 ```
@@ -17,6 +16,8 @@ __filelist_abs.txt:__
 /data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001030.png
 /data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001657.png
 ```
+
+For each image, there have to be a text file with the bounding boxes and labels.
 
 __000001517.ref_boxes.txt:__
 
