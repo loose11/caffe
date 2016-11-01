@@ -1,29 +1,32 @@
 # Uni Augsburg Augmentation Data Layer
-##(by Matthias Lieb)
+######(by Matthias Lieb)
 
-# Installation
+## Installation
 Checkout the release branch and use the normal setup workflow of the caffe framework.
 
-# Usage
+## Usage
 Through the constraints of this project, you can configure your Augmentation Layer pretty easy. 
 There is one constraint in the Augmentation Layer definition, because you need to specifiy a file
 where the absolute paths of the images are saved. 
 
 See definition:
 
-filelist_abs.txt
+__filelist_abs.txt:__
 ```
 /data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001517.png
 /data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001030.png
 /data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001657.png
 ```
 
-000001517.ref_boxes.txt
+__000001517.ref_boxes.txt:__
+
 ```
 109 168 215 286 4 -1 _m00
 ```
 
 After the correct file structure, you can configure the Layer. 
+
+__Augmented Data Layer:__
 
 ```
 layer {
@@ -51,10 +54,12 @@ layer {
 
 
 __num_rotations_img__ : number of augmentations with rotations
+
 __min_roation_angle__ & __max_rotation_angle__ : range of the random rotations
+
 __output_directory__ : if you want to save the augmented data, you can set a output_directory
 
-##Translation with gaussian distribution
+###Translation with gaussian distribution
 __mean__ & __deviation__ : standard definition for the distribution. deviation is to evaluate as the variance
 __max_translation__ : restrict the maximum Translation
 
