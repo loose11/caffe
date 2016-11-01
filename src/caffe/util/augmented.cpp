@@ -154,7 +154,7 @@ cv::Mat translate_image(cv::Mat cv_img, int offset_x, int offset_y)
 
 	cv::Mat dest;
     cv::Size size(cv_img.cols,cv_img.rows);
-	cv::warpAffine(cv_img, dest, t, size, INTER_LINEAR, BORDER_CONSTANT);
+	cv::warpAffine(cv_img, dest, t, size, cv::INTER_LINEAR, cv::BORDER_CONSTANT);
 
 	return dest;
 }
