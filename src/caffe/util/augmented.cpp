@@ -147,7 +147,7 @@ cv::Mat resize_image(cv::Mat cv_img_origin, int width, int height)
 
 cv::Mat translate_image(cv::Mat cv_img, int offset_x, int offset_y){
 	cv::Mat trans_mat = (cv::Mat_<double>(2,3) << 1, 0, offset_x, 0, 1, offset_y);
-	cv::warpAffine(cv_img, cv_img, trans_mat, img.size());
+	cv::warpAffine(cv_img, cv_img, trans_mat, cv_img.size());
 	return trans_mat;
 }
 }
