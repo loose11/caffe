@@ -180,13 +180,9 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
   boost::random::mt19937 generator(time(0));
   boost::random::uniform_int_distribution<> dist(min_rotation_angle, max_rotation_angle);
 
-  if (mean != NULL && s_deviation != NULL)
-  {
-    boost::normal_distribution<> nd(mean, s_deviation);
-    boost::variate_generator<boost::mt19937 &,
-                             boost::normal_distribution<>>
-        var_nor(rng, nd);
-  }
+  boost::normal_distribution<> nd(mean, s_deviation);
+  boost::variate_generator<boost::mt19937 &,
+                           boost::normal_distribution<>> var_nor(rng, nd);
 
   for (int item_id = 0; item_id < batch_size; ++item_id)
   {
@@ -220,7 +216,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
     // Apply transformations (mirror, crop...) to the image
 
     // translate image through gausian distribution
-    if (mean != NULL && s_deviation != NULL)
+    if (mean != 0 && s_deviation != 0)
     {
       double translation = (var_nor() * cv_img.cols) % max_translation;
       // At first it only translate the X-Axis.
