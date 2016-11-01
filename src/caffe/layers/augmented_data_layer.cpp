@@ -197,27 +197,27 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
 
-    cv_img = translate_image(cv_img, 10, 0);
+    cv::Mat test = translate_image(cv_img, 10, 0);
     if(!output_directory.empty()){
       char buffer[300];
       sprintf(buffer, "%s%s_%d_%d_translate.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
       std::string path = buffer;
-      cv::imwrite(path, cv_img);
+      cv::imwrite(path, test);
     }
 
     // Going to find the bounding boxes, which discribe parts of the image
-   /*  this->GenerateBox(lines_[lines_id_].first, box_position);
+    this->GenerateBox(lines_[lines_id_].first, box_position);
     std::vector<cv::Mat> augmented_images = aug_create_rotated_images(cv_img, bounding_box, num_rotations_img, angle);
     // We take only the first, due a correct seed we get different images
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
 
     // Comment in if you want to save the images
-   /* if(!output_directory.empty()){
+    if(!output_directory.empty()){
       char buffer[300];
       sprintf(buffer, "%s%s_%d_%d.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
       std::string path = buffer;
       cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));
-    }*/
+    }
 
 
     // Send data to upper level
