@@ -2,7 +2,7 @@
 #include <opencv2/core/core.hpp>
 
 #include <fstream>  // NOLINT(readability/streams)
-#include <iostream>  // NOLINT(readability/streams)
+#include <iostream> // NOLINT(readability/streams)
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,30 +20,34 @@
 using namespace cv;
 using namespace std;
 
-namespace caffe {
+namespace caffe
+{
 
 template <typename Dtype>
-AugmentedDataLayer<Dtype>::~AugmentedDataLayer<Dtype>() {
+AugmentedDataLayer<Dtype>::~AugmentedDataLayer<Dtype>()
+{
   this->StopInternalThread();
 }
 
 template <typename Dtype>
-void AugmentedDataLayer<Dtype>::GenerateBox(string line, int position){
-    /*
+void AugmentedDataLayer<Dtype>::GenerateBox(string line, int position)
+{
+  /*
     * Generating the path to the file of the bounding box description,
     * and load the postion related bounding box.
     */
-    std::string ref_box_file = get_ref_box(line);
-    bounding_box = aug_load_bounding_box(ref_box_file, position);
+  std::string ref_box_file = get_ref_box(line);
+  bounding_box = aug_load_bounding_box(ref_box_file, position);
 }
 
 template <typename Dtype>
-void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top) {
-  
+void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype> *> &bottom,
+                                               const vector<Blob<Dtype> *> &top)
+{
+
   // Get the preferred output size of the data.
   const int new_height = this->layer_param_.image_data_param().new_height();
-  const int new_width  = this->layer_param_.image_data_param().new_width();
+  const int new_width = this->layer_param_.image_data_param().new_width();
   string root_folder = this->layer_param_.image_data_param().root_folder();
 
   // Load only the num_rotations, because here is it only needed to infer the blob shape
@@ -56,24 +60,28 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   CHECK(s_deviation >= 0) << "Deviation could not be smaller than 0.";
 
   CHECK((new_height == 0 && new_width == 0) ||
-      (new_height > 0 && new_width > 0)) << "Current implementation requires "
-      "new_height and new_width to be set at the same time.";
+        (new_height > 0 && new_width > 0))
+      << "Current implementation requires "
+         "new_height and new_width to be set at the same time.";
   // Read the file with filenames and labels
-  const string& source = this->layer_param_.image_data_param().source();
+  const string &source = this->layer_param_.image_data_param().source();
   LOG(INFO) << "Opening file " << source;
   std::ifstream infile(source.c_str());
   string line;
   size_t pos;
 
-  while (std::getline(infile, line)) {
+  while (std::getline(infile, line))
+  {
     pos = line.find_last_of(' ');
 
     // Get all labels of a specific image corresponding to the bounding boxes
     labels = aug_load_labels(get_ref_box(line));
 
-    for(int i = 0; i < labels.size(); i++){
-      for(int j = 0; j < num_rotations_img; j++){
-              lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(i)));
+    for (int i = 0; i < labels.size(); i++)
+    {
+      for (int j = 0; j < num_rotations_img; j++)
+      {
+        lines_.push_back(std::make_pair(line.substr(0, pos), labels.at(i)));
       }
     }
   }
@@ -101,26 +109,28 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   const int batch_size = this->layer_param_.image_data_param().batch_size();
   CHECK_GT(batch_size, 0) << "Positive batch size required";
   top_shape[0] = batch_size;
-  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
+  for (int i = 0; i < this->PREFETCH_COUNT; ++i)
+  {
     this->prefetch_[i].data_.Reshape(top_shape);
   }
   top[0]->Reshape(top_shape);
 
   LOG(INFO) << "output data size: " << top[0]->num() << ","
-      << top[0]->channels() << "," << top[0]->height() << ","
-      << top[0]->width();
+            << top[0]->channels() << "," << top[0]->height() << ","
+            << top[0]->width();
   // label
   vector<int> label_shape(1, batch_size);
   top[1]->Reshape(label_shape);
-  for (int i = 0; i < this->PREFETCH_COUNT; ++i) {
+  for (int i = 0; i < this->PREFETCH_COUNT; ++i)
+  {
     this->prefetch_[i].label_.Reshape(label_shape);
   }
 }
 
-
 // This function is called on prefetch thread
 template <typename Dtype>
-void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
+void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
+{
   CPUTimer batch_timer;
   batch_timer.Start();
   double read_time = 0;
@@ -158,8 +168,8 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   top_shape[0] = batch_size;
   batch->data_.Reshape(top_shape);
 
-  Dtype* prefetch_data = batch->data_.mutable_cpu_data();
-  Dtype* prefetch_label = batch->label_.mutable_cpu_data();
+  Dtype *prefetch_data = batch->data_.mutable_cpu_data();
+  Dtype *prefetch_label = batch->label_.mutable_cpu_data();
 
   // datum scales
   const int lines_size = lines_.size();
@@ -167,22 +177,34 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   int rotations = num_rotations_img;
 
   // Distribution over the rotation_angle for the later randomization
-  boost::random::mt19937 							generator(time(0));
-  boost::random::uniform_int_distribution<>  dist(min_rotation_angle, max_rotation_angle);
+  boost::random::mt19937 generator(time(0));
+  boost::random::uniform_int_distribution<> dist(min_rotation_angle, max_rotation_angle);
 
-  for (int item_id = 0; item_id < batch_size; ++item_id) {
+  if (mean != NULL && s_deviation != NULL)
+  {
+    boost::normal_distribution<> nd(mean, s_deviation);
+    boost::variate_generator<boost::mt19937 &,
+                             boost::normal_distribution<>>
+        var_nor(rng, nd);
+  }
+
+  for (int item_id = 0; item_id < batch_size; ++item_id)
+  {
 
     float angle = dist(generator);
     //LOG(INFO) << "Angle: " << angle << " file: " << lines_[lines_id_].first;
 
-    if(lines_id_+1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_+1].first){
+    if (lines_id_ + 1 < lines_.size() && lines_[lines_id_].first == lines_[lines_id_ + 1].first)
+    {
       // consider the rotation in the lines_ structure, because of multiplication
       rotations--;
-      if(rotations == 0){
+      if (rotations == 0)
+      {
         box_position++;
       }
-
-    }else{
+    }
+    else
+    {
       // Reached a new file, reset all.
       box_position = 0;
       rotations = num_rotations_img;
@@ -197,12 +219,12 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
 
-    cv::Mat test = translate_image(cv_img, 300, 0);
-    if(!output_directory.empty()){
-      char buffer[300];
-      sprintf(buffer, "%s%s_%d_%d_translate.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
-      std::string path = buffer;
-      cv::imwrite(path, test);
+    // translate image through gausian distribution
+    if (mean != NULL && s_deviation != NULL)
+    {
+      double translation = (var_nor() * cv_img.cols) % max_translation;
+      // At first it only translate the X-Axis.
+      cv_img = translate_image(cv_img, translation, 0);
     }
 
     // Going to find the bounding boxes, which discribe parts of the image
@@ -212,13 +234,13 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     cv_img = resize_image(augmented_images.at(0), new_width, new_height);
 
     // Comment in if you want to save the images
-    if(!output_directory.empty()){
+    if (!output_directory.empty())
+    {
       char buffer[300];
       sprintf(buffer, "%s%s_%d_%d.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
       std::string path = buffer;
       cv::imwrite(path, resize_image(augmented_images.at(0), new_width, new_height));
     }
-
 
     // Send data to upper level
     int offset = batch->data_.offset(item_id);
@@ -229,7 +251,8 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     prefetch_label[item_id] = lines_[lines_id_].second;
     // go to the next iter
     lines_id_++;
-    if (lines_id_ >= lines_size) {
+    if (lines_id_ >= lines_size)
+    {
       // We have reached the end. Restart from the first.
       DLOG(INFO) << "Restarting data prefetching from start.";
       lines_id_ = 0;
@@ -244,5 +267,5 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 INSTANTIATE_CLASS(AugmentedDataLayer);
 REGISTER_LAYER_CLASS(AugmentedData);
 
-}  // namespace caffe
-#endif  // USE_OPENCV
+} // namespace caffe
+#endif // USE_OPENCV

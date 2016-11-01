@@ -15,5 +15,8 @@ layer {
     min_rotation_angle: 0
     max_rotation_angle: 5
     output_directory: "/home/liebmatt/images/"
+    mean: 0
+    deviation: 1
+    max_translation: 100
   }
 }
