@@ -1,3 +1,67 @@
+# Uni Augsburg Augmentation Data Layer
+##(by Matthias Lieb)
+
+# Installation
+Checkout the release branch and use the normal setup workflow of the caffe framework.
+
+# Usage
+Through the constraints of this project, you can configure your Augmentation Layer pretty easy. 
+There is one constraint in the Augmentation Layer definition, because you need to specifiy a file
+where the absolute paths of the images are saved. 
+
+See definition:
+
+filelist_abs.txt
+```
+/data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001517.png
+/data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001030.png
+/data/raid_ssd/Datasets/FlickrLogos_v3/train/000001/000001657.png
+```
+
+000001517.ref_boxes.txt
+```
+109 168 215 286 4 -1 _m00
+```
+
+After the correct file structure, you can configure the Layer. 
+
+```
+layer {
+  name: "data"
+  type: "AugmentedData"
+  top: "data"
+  top: "label"
+  image_data_param {
+    source: "/data/raid_ssd/Datasets/FlickrLogos_v3/test/filelist_abs.txt"
+    batch_size: 100
+    new_height: 128
+    new_width: 128
+  }
+  augmented_param {
+    num_rotations_img: 10
+    min_rotation_angle: 0
+    max_rotation_angle: 5
+    output_directory: "/home/liebmatt/images/"
+    mean: 0
+    deviation: 1
+    max_translation: 100
+  }
+}
+````
+
+
+__num_rotations_img__ : number of augmentations with rotations
+__min_roation_angle__ & __max_rotation_angle__ : range of the random rotations
+__output_directory__ : if you want to save the augmented data, you can set a output_directory
+
+##Translation with gaussian distribution
+__mean__ & __deviation__ : standard definition for the distribution. deviation is to evaluate as the variance
+__max_translation__ : restrict the maximum Translation
+
+
+
+
+
 # Caffe
 
 [![Build Status](https://travis-ci.org/BVLC/caffe.svg?branch=master)](https://travis-ci.org/BVLC/caffe)
