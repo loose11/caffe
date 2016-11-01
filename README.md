@@ -62,6 +62,7 @@ __output_directory__ : if you want to save the augmented data, you can set a out
 
 ###Translation with gaussian distribution
 __mean__ & __deviation__ : standard definition for the distribution. deviation is to evaluate as the variance
+
 __max_translation__ : restrict the maximum Translation
 
 
