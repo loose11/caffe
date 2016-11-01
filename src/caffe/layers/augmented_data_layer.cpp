@@ -53,7 +53,7 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   const float s_deviation = aug_data_param.deviation();
   const float mean = aug_data_param.mean();
 
-  CHECK(s_deviation >= 0) << "Deviation could not be smaller than 0."
+  CHECK(s_deviation >= 0) << "Deviation could not be smaller than 0.";
 
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
