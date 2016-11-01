@@ -197,7 +197,7 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
 
-    cv::Mat test = translate_image(cv_img, 10, 0);
+    cv::Mat test = translate_image(cv_img, 300, 0);
     if(!output_directory.empty()){
       char buffer[300];
       sprintf(buffer, "%s%s_%d_%d_translate.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
