@@ -489,8 +489,13 @@ message AugmentedDataParameter {
 	optional uint32 min_rotation_angle = 4;
 	optional uint32 max_rotation_angle = 5;
 
+  // Specifiy the gaussian distrubtion
+  optional float mean = 6;
+  optional float deviation = 7;
+  optional uint32 max_translation = 8;
+
   // Save augmented data to output_directory
-  optional string output_directory = 6;
+  optional string output_directory = 9;
 
 }
 

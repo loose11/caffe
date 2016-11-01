@@ -50,6 +50,11 @@ void AugmentedDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& botto
   AugmentedDataParameter aug_data_param = this->layer_param_.augmented_param();
   const int num_rotations_img = aug_data_param.num_rotations_img();
 
+  const float variance = aug_data_param.variance();
+  const float expectation = aug_data_param.expectation();
+
+  CHECK(variance >= 0) << "Variance could not be smaller than 0."
+
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
       "new_height and new_width to be set at the same time.";
@@ -135,6 +140,11 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int max_rotation_angle = aug_data_param.max_rotation_angle();
   std::string output_directory = aug_data_param.output_directory();
 
+  // Get the standard deviation for the variance and the mean
+  const float s_deviation = aug_data_param.deviation();
+  const float mean = aug_data_param.mean();
+  const int max_translation = aug_data_param.max_translation();
+
   // Reshape according to the first image of each batch
   // on single input batches allows for inputs of varying dimension.
   cv::Mat cv_img = cv::imread(root_folder + lines_[lines_id_].first, CV_LOAD_IMAGE_COLOR);
@@ -186,6 +196,14 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     read_time += timer.MicroSeconds();
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
+
+    cv_img = translate_image(cv_img, 10, 0);
+    if(!output_directory.empty()){
+      char buffer[300];
+      sprintf(buffer, "translate_%s%s_%d_%d.png", output_directory.c_str(), create_raw_name(lines_[lines_id_].first).c_str(), lines_[lines_id_].second, item_id);
+      std::string path = buffer;
+      cv::imwrite(path, cv_img);
+    }
 
     // Going to find the bounding boxes, which discribe parts of the image
     this->GenerateBox(lines_[lines_id_].first, box_position);

@@ -15,5 +15,6 @@ std::vector<cv::Mat> aug_create_rotated_images(cv::Mat source, std::vector<int>,
 std::string get_ref_box(std::string image_path);
 std::string create_raw_name(std::string image_path);
 cv::Mat resize_image(cv::Mat cv_img_origin, int width, int height);
+cv::Mat translate_image(cv::Mat cv_img, int offset_x, int offset_y);
 }
 #endif  // CAFFE_UTIL_AUGMENTED_H_
