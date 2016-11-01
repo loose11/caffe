@@ -222,7 +222,8 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
     // translate image through gausian distribution
     if (mean != 0 && s_deviation != 0)
     {
-      double translation = (var_nor() * cv_img.cols) % max_translation;
+      double random = var_nor();
+      double translation = (random * cv_img.cols) % max_translation;
       // At first it only translate the X-Axis.
       cv_img = translate_image(cv_img, translation, 0);
     }
