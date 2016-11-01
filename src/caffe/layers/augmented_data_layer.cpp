@@ -184,8 +184,8 @@ void AugmentedDataLayer<Dtype>::load_batch(Batch<Dtype> *batch)
   boost::random::uniform_int_distribution<> dist(min_rotation_angle, max_rotation_angle);
 
   boost::normal_distribution<> nd(mean, s_deviation);
-  boost::variate_generator<boost::mt19937 &,
-                           boost::normal_distribution<>> var_nor(rng, nd);
+  boost::variate_generator< boost::mt19937 &,
+                           boost::normal_distribution<> > var_nor(rng, nd);
 
   for (int item_id = 0; item_id < batch_size; ++item_id)
   {
